@@ -75,7 +75,7 @@ addBot(process.env.TELEGRAM_BOT_USERNAME, process.env.TELEGRAM_BOT_SECRET, {
   onPMChatJoin: async function (update) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Hi ${update.message.from.username || update.message.from.first_name}`,
+      text: `Hi ${update.message.from.username ? '@' + update.message.from.username : update.message.from.first_name}`,
     },
       process.env.TELEGRAM_BOT_TOKEN);
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} started PM chat with ${update.message.from.first_name} | ${update.message.from.username} | ${update.message.from.id} `);
@@ -93,7 +93,7 @@ addBot(process.env.TELEGRAM_BOT_USERNAME, process.env.TELEGRAM_BOT_SECRET, {
   onGroupChatJoin: async function (update) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Hi ${update.message.from.username || update.message.chat.title}!`,
+      text: `Hi ${update.message.from.username ? '@' + update.message.from.username : update.message.chat.title}!`,
     },
       process.env.TELEGRAM_BOT_TOKEN);
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} joined group ${update.message.chat.title} | ${update.message.chat.id} by ${update.message.from.first_name} | ${update.message.from.username} | ${update.message.from.id} `);

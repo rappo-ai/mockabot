@@ -1,0 +1,37 @@
+{
+  "name": "mockabot",
+  "version": "1.0.0",
+  "description": "Telegram bot to mock Telegram bots.",
+  "main": "index.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=development node ./",
+    "start:tunnel": "cross-env NODE_ENV=development ENABLE_TUNNEL=true node ./",
+    "start:production": "cross-env NODE_ENV=production node ./",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rappo-ai/mockabot.git"
+  },
+  "author": "Renzil DSouza",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/rappo-ai/mockabot/issues"
+  },
+  "homepage": "https://github.com/rappo-ai/mockabot#readme",
+  "dependencies": {
+    "async": "^3.2.0",
+    "axios": "^0.21.1",
+    "chalk": "^4.1.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "ip": "^1.1.5",
+    "lodash": "^4.17.21",
+    "minimist": "^1.2.5",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "ngrok": "^4.0.1"
+  }
+}

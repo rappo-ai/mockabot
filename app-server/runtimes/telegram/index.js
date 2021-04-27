@@ -109,56 +109,33 @@ Click /help for details on my commands and their usage.`,
     }
     switch (args[0]) {
       case "/help":
-        apiResponse = await sendMessage({
-          chat_id: update.message.chat.id,
-          text: `Working on it, I will update this soon.`,
-        },
-          process.env.TELEGRAM_BOT_TOKEN);
+        {
+          apiResponse = await command_help(update, args);
+        }
         break;
       case "/chatid":
-        apiResponse = await sendMessage({
-          chat_id: update.message.chat.id,
-          text: `${update.message.chat.id}`,
-          reply_to_message_id: update.message.message_id,
-        },
-          process.env.TELEGRAM_BOT_TOKEN);
+        {
+          apiResponse = await command_chatid(update, args);
+        }
+        break;
+      case "/messageid":
+        {
+          apiResponse = await command_messageid(update, args);
+        }
         break;
       case "/connect":
         {
-          if (args[1] === undefined) {
-            await sendMessage({
-              chat_id: update.message.chat.id,
-              text: `Usage - \`/connect <BOT TOKEN>\``,
-              parse_mode: "Markdown",
-              reply_to_message_id: update.message.message_id,
-            },
-              process.env.TELEGRAM_BOT_TOKEN);
-            return;
-          }
-          const bot_token = args[1];
-          try {
-            apiResponse = await getMe(bot_token);
-            const bot_username = `@${apiResponse.data.result.username}`;
-            connected_bots[bot_username] = bot_token;
-            await sendMessage({
-              chat_id: update.message.chat.id,
-              text: `Connected bot ${bot_username}. You can now use the bot's username instead of the token for all requests.`,
-              reply_to_message_id: update.message.message_id,
-            },
-              process.env.TELEGRAM_BOT_TOKEN);
-          } catch (err) {
-            await sendMessage({
-              chat_id: update.message.chat.id,
-              text: `Unable to connect this token. Please check the token and try again.`,
-              reply_to_message_id: update.message.message_id,
-            },
-              process.env.TELEGRAM_BOT_TOKEN);
-          }
+          apiResponse = await command_connect(update, args);
         }
         break;
       case "/send":
         {
-          command_send(update, args);
+          apiResponse = await command_send(update, args);
+        }
+        break;
+      case "/reply":
+        {
+          apiResponse = await command_reply(update, args);
         }
         break;
     }
@@ -179,17 +156,29 @@ Click /help for details on my commands and their usage.`,
       return;
     }
     switch (args[0]) {
+      case "/help":
+        {
+          apiResponse = await command_help(update, args);
+        }
+        break;
       case "/chatid":
-        apiResponse = await sendMessage({
-          chat_id: update.message.chat.id,
-          text: `${update.message.chat.id}`,
-          reply_to_message_id: update.message.message_id,
-        },
-          process.env.TELEGRAM_BOT_TOKEN);
+        {
+          apiResponse = await command_chatid(update, args);
+        }
+        break;
+      case "/messageid":
+        {
+          apiResponse = await command_messageid(update, args);
+        }
         break;
       case "/send":
         {
-          await command_send(update, args);
+          apiResponse = await command_send(update, args);
+        }
+        break;
+      case "/reply":
+        {
+          apiResponse = await command_reply(update, args);
         }
         break;
     }
@@ -211,12 +200,87 @@ Click /help for details on my commands and their usage.`,
   },
 });
 
+async function command_help(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Working on it, will have the help up soon.`,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
+
+async function command_chatid(update) {
+  return sendMessage({
+    chat_id: update.message.chat.id,
+    text: `${update.message.chat.id}`,
+    reply_to_message_id: update.message.message_id,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
+
+async function command_messageid(update) {
+  if (!update.message.reply_to_message) {
+    return sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Usage: Reply to any message with /messageid to know the message id`,
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  }
+  return sendMessage({
+    chat_id: update.message.chat.id,
+    text: `${update.message.reply_to_message.message_id}`,
+    reply_to_message_id: update.message.message_id,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
+
+async function command_connect(update, args) {
+  let apiResponse;
+  if (args[1] === undefined) {
+    await sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Usage - \`/connect <BOT TOKEN>\``,
+      parse_mode: "Markdown",
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+    return apiResponse;
+  }
+  const bot_token = args[1];
+  try {
+    apiResponse = await getMe(bot_token);
+    const bot_username = `@${apiResponse.data.result.username}`;
+    connected_bots[bot_username] = bot_token;
+    await sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Connected bot ${bot_username}. You can now use the bot's username instead of the token for all requests.`,
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  } catch (err) {
+    await sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Unable to connect this token. Please check the token and try again.`,
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  }
+  return apiResponse;
+}
 async function command_send(update, args) {
+  return on_send_message(update, args, false);
+}
+
+async function command_reply(update, args) {
+  return on_send_message(update, args, true);
+}
+
+async function on_send_message(update, args, isReply) {
   let apiResponse;
   if (args[1] === undefined || args[2] === undefined || (!update.message.reply_to_message && args[3] === undefined)) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage - \`/send <BOT TOKEN | BOT USERNAME> <CHAT ID | GROUP USERNAME>${update.message.reply_to_message ? '' : ' <MESSAGE>'}\``,
+      text: `Usage - \`/send ${update.message.reply_to_message ? '' : '<MESSAGE> '}${isReply ? '<REPLY TO MESSAGE ID> ' : ''}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -224,9 +288,22 @@ async function command_send(update, args) {
     return;
   }
 
-  let bot_token = args[1];
-  const to_chat_id = args[2];
-  const message = args[3];
+  let message;
+  let reply_to_message_id;
+  let to_chat_id;
+  let bot_token;
+
+  if (update.message.reply_to_message) {
+    reply_to_message_id = isReply ? args[1] : undefined;
+    to_chat_id = args[isReply ? 2 : 1];
+    bot_token = args[isReply ? 3 : 2];
+  } else {
+    message = args[1];
+    reply_to_message_id = isReply ? args[2] : undefined;
+    to_chat_id = args[isReply ? 3 : 2];
+    bot_token = args[isReply ? 4 : 3];
+  }
+
   let reply_markup = { inline_keyboard: [] };
 
   let reply_markup_text = update.message.text.match(/\[.+]/g);
@@ -273,6 +350,7 @@ async function command_send(update, args) {
         chat_id: to_chat_id,
         message: update.message.reply_to_message,
         reply_markup,
+        reply_to_message_id,
       },
         bot_token);
     } else {
@@ -280,6 +358,7 @@ async function command_send(update, args) {
         chat_id: to_chat_id,
         text: message,
         reply_markup,
+        reply_to_message_id,
       },
         bot_token);
     }
@@ -291,7 +370,7 @@ async function command_send(update, args) {
     }
   }
   const response = apiResponse.status === 200 ? "✅ Message sent" : "❌ Message not sent";
-  apiResponse = await sendMessage({
+  return sendMessage({
     chat_id: update.message.chat.id,
     text: response,
     reply_to_message_id: update.message.message_id,

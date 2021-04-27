@@ -289,6 +289,19 @@ async function sendSticker({ chat_id, sticker, reply_to_message_id = "", reply_m
   );
 }
 
+async function sendGame({ chat_id, game_short_name, reply_to_message_id = "", reply_markup = {} }, botToken) {
+  return callTelegramApi(
+    'sendGame',
+    botToken,
+    {
+      chat_id,
+      game_short_name,
+      reply_to_message_id,
+      reply_markup,
+    },
+  );
+}
+
 async function leaveChat({ chat_id }, botToken) {
   return callTelegramApi(
     'leaveChat',
@@ -487,13 +500,18 @@ async function cloneMessage({ message, chat_id, reply_to_message_id = "", reply_
         }, botToken);
         break;
 
+      case "game":
+        /*apiResponse = sendGame({
+          chat_id,
+          reply_to_message_id,
+          reply_markup,
+          game_short_name: message.game.?,
+        }, botToken);*/
+        break;
+
       default:
         logger.error(`cloneMessage: message type '${type}' not implemented`);
         break;
-      /*
-      case "game":
-        break;
-      */
     }
   });
   return apiResponse;
@@ -520,6 +538,7 @@ module.exports = {
   sendPoll,
   sendDice,
   sendSticker,
+  sendGame,
   leaveChat,
   cloneMessage,
 };

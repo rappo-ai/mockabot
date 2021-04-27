@@ -280,7 +280,7 @@ async function on_send_message(update, args, isReply) {
   if (args[1] === undefined || args[2] === undefined || (!update.message.reply_to_message && args[3] === undefined)) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage - \`/send ${update.message.reply_to_message ? '' : '<MESSAGE> '}${isReply ? '<REPLY TO MESSAGE ID> ' : ''}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
+      text: `Usage - \`/${isReply ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '<MESSAGE> '}${isReply ? '<REPLY TO MESSAGE ID> ' : ''}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },

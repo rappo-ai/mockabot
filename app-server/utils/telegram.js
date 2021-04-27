@@ -60,6 +60,17 @@ async function copyMessage({ chat_id, from_chat_id, message_id, reply_to_message
   );
 }
 
+async function deleteMessage({ chat_id, message_id }, botToken) {
+  return callTelegramApi(
+    'deleteMessage',
+    botToken,
+    {
+      chat_id,
+      message_id,
+    },
+  );
+}
+
 async function sendPhoto({ chat_id, photo, caption, caption_entities, reply_to_message_id = "", reply_markup = {}, parse_mode = "" }, botToken) {
   return callTelegramApi(
     'sendPhoto',
@@ -525,6 +536,7 @@ module.exports = {
   sendMessage,
   forwardMessage,
   copyMessage,
+  deleteMessage,
   sendPhoto,
   sendAudio,
   sendDocument,

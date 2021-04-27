@@ -1,11 +1,10 @@
 const queue = require('async/queue');
-const { get: getObjectProperty } = require('lodash/object');
+const { get: getObjectProperty, has: hasObjectProperty, set: setObjectProperty } = require('lodash/object');
 
 const logger = require('../../logger');
-const { TELEGRAM_MESSAGE_TYPES, getMe, sendMessage, leaveChat, cloneMessage } = require('../../utils/telegram');
+const { TELEGRAM_MESSAGE_TYPES, getMe, sendMessage, cloneMessage, deleteMessage, leaveChat } = require('../../utils/telegram');
 
 const bots = {};
-const connected_bots = {};
 
 function addBot(username, secret, callbacks) {
   bots[username] = {
@@ -82,16 +81,26 @@ addBot(process.env.TELEGRAM_BOT_USERNAME, process.env.TELEGRAM_BOT_SECRET, {
   onPMChatJoin: async function (update) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you mock the experience of a Telegram chatbot.
+      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you mock the experience of a Telegram chatbot in a group. I do this by posting messages to a group as the bot you are trying to mock, after which you can take screenshots of the conversation to create your mockups. I support posting all kinds of Telegram messages like text, photo, video, audio, etc. I can even reply to a message as another bot. Here is a quick tutorial to get started.
       
-To begin, use @BotFather to create a new bot. Once you have the bot token, you can send a message as your bot to anyone using the command \`/send <BOT TOKEN> <USERNAME> <MESSAGE>\`. Before sending a message, your bot must have initiated a conversation with \`<USERNAME>\`. 
-      
-If you'd like to not send the bot token every time, I can cache it for you with the command \`/connect <BOT TOKEN>\`. After this you can simply use \`/send <BOT USERNAME> <USERNAME> <MESSAGE>\`.
+To begin, use @BotFather to create a new bot - the bot you would like to mock. Once you have the bot token, I can send a message as this bot to any group using the command \`/send "<MESSAGE>" <GROUP USERNAME> <BOT TOKEN>\`. For example \`/send "hello" @mygroup 1234567890:mY-bOt-tOkEn\`. Before sending a message, your new bot must be a member of the target group.
 
-If you want to send a media or formatted text message, you can just send me the message you want to send and then reply to it with \`/send <BOT USERNAME> <USERNAME>\`.
+Once you use a bot token in any command, it will be cached for you so the next time you just need to pass the bot username instead of the token. For example \`/send "<MESSAGE>" <GROUP USERNAME> <BOT USERNAME>\`.
 
-You can even send to a group using \`/send <BOT USERNAME> <GROUPNAME>\`. Use \`/send <BOT USERNAME> <CHAT ID>\` to send to a private group, where chat id is obtained by sending /chatid in the private group.
-      
+You can even skip the bot username or group username and use \`/send "<MESSAGE>"\` to send the message. Mockabot will automatically send your message as the last bot and group used.
+
+For private groups, you can replace <GROUP USERNAME> with <GROUP CHATID> where chat id is obtained using the command \`/chatid\` in the private group.
+
+To send rich media messages, create a separate group and add @mockabot and your target bot as admins. Post any rich media message to the group, then simply reply with \`/send <GROUP USERNAME> <BOT TOKEN>\`. You can skip the group username and bot token and just reply to any message with \`/send\` once these are cached by Mockabot.
+
+You can also reply to a message in a group. Make sure Mockabot is added as an admin to the target group, then reply to the target message with the command \`/replyto\`. This will set the target message for the \`/reply\` command. Then use \`/reply\` instead of \`/send\` to send a reply to the target message.
+
+To send callback buttons, you can use the following syntax at the end of the send and reply commands - [[Row1Col1ButtonText, ...Row1ColNButtonText], ...[RowMCol1ButtonText, ...]]. Rows can have different number of columns.
+
+Mockabot does not store your data in any database, and your cache might get cleared without notice. To force your cache to get cleared, use the command \`/clearcache\`.
+
+Mockabot also does not set any webhooks on your bots, or try to read any incoming updates using your bot tokens. The project is open-source and can be found at https://github.com/rappo-ai/mockabot.
+
 Click /help for details on my commands and their usage.`,
       parse_mode: "Markdown",
     },
@@ -99,46 +108,7 @@ Click /help for details on my commands and their usage.`,
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} started PM chat with ${update.message.from.first_name} | ${update.message.from.username} | ${update.message.from.id} `);
   },
   onPMChatMessage: async function (update) {
-    if (!update.message.text) {
-      return;
-    }
-    let apiResponse;
-    const args = update.message.text.split(' ');
-    if (!args.length) {
-      return;
-    }
-    switch (args[0]) {
-      case "/help":
-        {
-          apiResponse = await command_help(update, args);
-        }
-        break;
-      case "/chatid":
-        {
-          apiResponse = await command_chatid(update, args);
-        }
-        break;
-      case "/messageid":
-        {
-          apiResponse = await command_messageid(update, args);
-        }
-        break;
-      case "/connect":
-        {
-          apiResponse = await command_connect(update, args);
-        }
-        break;
-      case "/send":
-        {
-          apiResponse = await command_send(update, args);
-        }
-        break;
-      case "/reply":
-        {
-          apiResponse = await command_reply(update, args);
-        }
-        break;
-    }
+    await onMessage(update, false);
   },
   onPMChatBlocked: async function (update) {
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} blocked by ${update.my_chat_member.from.first_name} | ${update.my_chat_member.from.username} | ${update.my_chat_member.from.id}`);
@@ -147,41 +117,7 @@ Click /help for details on my commands and their usage.`,
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} joined group ${update.message.chat.title} | ${update.message.chat.id} by ${update.message.from.first_name} | ${update.message.from.username} | ${update.message.from.id} `);
   },
   onGroupChatMessage: async function (update) {
-    if (!update.message.text) {
-      return;
-    }
-    let apiResponse;
-    const args = update.message.text.split(' ');
-    if (!args.length) {
-      return;
-    }
-    switch (args[0]) {
-      case "/help":
-        {
-          apiResponse = await command_help(update, args);
-        }
-        break;
-      case "/chatid":
-        {
-          apiResponse = await command_chatid(update, args);
-        }
-        break;
-      case "/messageid":
-        {
-          apiResponse = await command_messageid(update, args);
-        }
-        break;
-      case "/send":
-        {
-          apiResponse = await command_send(update, args);
-        }
-        break;
-      case "/reply":
-        {
-          apiResponse = await command_reply(update, args);
-        }
-        break;
-    }
+    await onMessage(update, true);
   },
   onGroupChatLeave: async function (update) {
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} kicked in group ${update.my_chat_member.chat.title} | ${update.my_chat_member.chat.id} by ${update.my_chat_member.from.first_name} | ${update.my_chat_member.from.username} | ${update.my_chat_member.from.id} `);
@@ -200,7 +136,53 @@ Click /help for details on my commands and their usage.`,
   },
 });
 
-async function command_help(update) {
+const cache = {};
+
+async function onMessage(update, isGroup) {
+  if (!update.message.text) {
+    return;
+  }
+  const command_match = update.message.text.match(/(^\/[a-z]+)/);
+  if (!command_match || !command_match.length) {
+    return;
+  }
+  const command = command_match[0];
+  let apiResponse;
+  switch (command) {
+    case "/help":
+      {
+        apiResponse = await onCommandHelp(update);
+      }
+      break;
+    case "/chatid":
+      {
+        apiResponse = await onCommandChatid(update);
+      }
+      break;
+    case "/clearcache":
+      {
+        apiResponse = await onCommandClearcache(update);
+      }
+      break;
+    case "/send":
+      {
+        apiResponse = await onCommandSend(update);
+      }
+      break;
+    case "/replyto":
+      {
+        apiResponse = await onCommandReplyto(update);
+      }
+      break;
+    case "/reply":
+      {
+        apiResponse = await onCommandReply(update);
+      }
+      break;
+  }
+  return apiResponse;
+}
+async function onCommandHelp(update) {
   apiResponse = await sendMessage({
     chat_id: update.message.chat.id,
     text: `Working on it, will have the help up soon.`,
@@ -208,7 +190,7 @@ async function command_help(update) {
     process.env.TELEGRAM_BOT_TOKEN);
 }
 
-async function command_chatid(update) {
+async function onCommandChatid(update) {
   return sendMessage({
     chat_id: update.message.chat.id,
     text: `${update.message.chat.id}`,
@@ -217,133 +199,113 @@ async function command_chatid(update) {
     process.env.TELEGRAM_BOT_TOKEN);
 }
 
-async function command_messageid(update) {
-  if (!update.message.reply_to_message) {
-    return sendMessage({
-      chat_id: update.message.chat.id,
-      text: `Usage: Reply to any message with /messageid to know the message id`,
-      reply_to_message_id: update.message.message_id,
-    },
-      process.env.TELEGRAM_BOT_TOKEN);
-  }
+async function onCommandClearcache(update) {
+  setObjectProperty(cache, `[${update.message.chat.id}]`, {});
   return sendMessage({
     chat_id: update.message.chat.id,
-    text: `${update.message.reply_to_message.message_id}`,
+    text: `Cache cleared.`,
     reply_to_message_id: update.message.message_id,
   },
     process.env.TELEGRAM_BOT_TOKEN);
 }
 
-async function command_connect(update, args) {
-  let apiResponse;
-  if (args[1] === undefined) {
-    await sendMessage({
+async function onCommandSend(update) {
+  return doSendMessage(update, false);
+}
+
+async function onCommandReplyto(update) {
+  if (!update.message.reply_to_message) {
+    return sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage - \`/connect <BOT TOKEN>\``,
+      text: `Usage: Reply to any message in the target chat with /replyto to set the reply-to message of this chat.`,
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  }
+  setObjectProperty(cache, `${update.message.chat.id}.reply_to.message_id`, update.message.reply_to_message.message_id);
+  setObjectProperty(cache, `${update.message.chat.id}.reply_to.command_message_id`, update.message.message_id);
+  const apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `This message will be replied to when you use /reply command with this target group.`,
+    reply_to_message_id: update.message.message_id,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+  setObjectProperty(cache, `${update.message.chat.id}.reply_to.status_message_id`, apiResponse.data.result.message_id);
+}
+
+async function onCommandReply(update) {
+  return doSendMessage(update, true);
+}
+
+async function doSendMessage(update, isReplyCommand) {
+  const matches = update.message.text.match(/(^\/[a-z]+)\s*(".*")?\s*(@\w{5,})?(-?\d+)?\s*(\d{10}:\S{35})?(@\w{5,})?/);
+  const command = matches[1];
+  const message = matches[2] ? matches[2].slice(1, -1) : undefined;
+  const group_username = matches[3];
+  const chat_id = matches[4];
+  let bot_token = matches[5];
+  const bot_username = matches[6];
+
+  const to_chat_id = group_username || chat_id || getObjectProperty(cache, `${update.message.chat.id}.recent_group]`);
+
+  let apiResponse;
+  if (!update.message.reply_to_message && message === undefined) {
+    return sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
       process.env.TELEGRAM_BOT_TOKEN);
-    return apiResponse;
-  }
-  const bot_token = args[1];
-  try {
-    apiResponse = await getMe(bot_token);
-    const bot_username = `@${apiResponse.data.result.username}`;
-    connected_bots[bot_username] = bot_token;
-    await sendMessage({
+  } else if (group_username === undefined && chat_id === undefined && !hasObjectProperty(cache, `${update.message.chat.id}.recent_group`)) {
+    return sendMessage({
       chat_id: update.message.chat.id,
-      text: `Connected bot ${bot_username}. You can now use the bot's username instead of the token for all requests.`,
-      reply_to_message_id: update.message.message_id,
-    },
-      process.env.TELEGRAM_BOT_TOKEN);
-  } catch (err) {
-    await sendMessage({
-      chat_id: update.message.chat.id,
-      text: `Unable to connect this token. Please check the token and try again.`,
-      reply_to_message_id: update.message.message_id,
-    },
-      process.env.TELEGRAM_BOT_TOKEN);
-  }
-  return apiResponse;
-}
-async function command_send(update, args) {
-  return on_send_message(update, args, false);
-}
+      text: `No group found in the cache. Please specify the group username or chat id.
 
-async function command_reply(update, args) {
-  return on_send_message(update, args, true);
-}
-
-async function on_send_message(update, args, isReply) {
-  let apiResponse;
-  if (args[1] === undefined || args[2] === undefined || (!update.message.reply_to_message && args[3] === undefined)) {
-    await sendMessage({
-      chat_id: update.message.chat.id,
-      text: `Usage - \`/${isReply ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '<MESSAGE> '}${isReply ? '<REPLY TO MESSAGE ID> ' : ''}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}<CHAT ID | GROUP USERNAME> [BOT TOKEN | BOT USERNAME]\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
       process.env.TELEGRAM_BOT_TOKEN);
-    return;
+  } else if (bot_token === undefined && bot_username === undefined && !hasObjectProperty(cache, `${update.message.chat.id}.recent_bot`)) {
+    return sendMessage({
+      chat_id: update.message.chat.id,
+      text: `No bot found in the cache. Please specify the bot token.
+
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] <BOT TOKEN>\``,
+      parse_mode: "Markdown",
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  } else if (bot_username && !hasObjectProperty(cache, `${update.message.chat.id}.bot_username_to_token.${bot_username}`)) {
+    return sendMessage({
+      chat_id: update.message.chat.id,
+      text: `${bot_username} not found in the cache. Please specify a different bot username or the bot token.
+
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] <BOT TOKEN | BOT USERNAME>\``,
+      parse_mode: "Markdown",
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
+  } else if (isReplyCommand && !hasObjectProperty(cache, `${to_chat_id}.reply_to.message_id`)) {
+    return sendMessage({
+      chat_id: update.message.chat.id,
+      text: `Reply target message not set. Please reply to any message in the target group with /replyto command to set it as the target message for /reply.`,
+      parse_mode: "Markdown",
+      reply_to_message_id: update.message.message_id,
+    },
+      process.env.TELEGRAM_BOT_TOKEN);
   }
 
-  let message;
-  let reply_to_message_id;
-  let to_chat_id;
-  let bot_token;
-
-  if (update.message.reply_to_message) {
-    reply_to_message_id = isReply ? args[1] : undefined;
-    to_chat_id = args[isReply ? 2 : 1];
-    bot_token = args[isReply ? 3 : 2];
-  } else {
-    message = args[1];
-    reply_to_message_id = isReply ? args[2] : undefined;
-    to_chat_id = args[isReply ? 3 : 2];
-    bot_token = args[isReply ? 4 : 3];
+  if (bot_username) {
+    bot_token = getObjectProperty(cache, `${update.message.chat.id}.bot_username_to_token.${bot_username}`);
+  } else if (!bot_token) {
+    bot_token = getObjectProperty(cache, `${update.message.chat.id}.recent_bot`);
   }
 
-  let reply_markup = { inline_keyboard: [] };
+  const reply_markup = { inline_keyboard: getInlineKeyboard(update) };
+  const reply_to_message_id = isReplyCommand ? getObjectProperty(cache, `${to_chat_id}.reply_to.message_id`) : undefined;
 
-  let reply_markup_text = update.message.text.match(/\[.+]/g);
-  if (reply_markup_text && reply_markup_text.length) {
-    reply_markup_text = reply_markup_text[0];
-  }
-
-  if (reply_markup_text) {
-    try {
-      const button_rows = reply_markup_text.match(/\[[^\[\]]+]/gm);
-      button_rows.forEach(row => {
-        const reply_markup_row = [];
-        const columns = row.slice(1, -1).trim().split(',');
-        columns.forEach(column => {
-          reply_markup_row.push({
-            text: column,
-            callback_data: column,
-          });
-        });
-        reply_markup.inline_keyboard.push(reply_markup_row);
-      });
-    } catch (err) {
-      logger.error(err);
-    }
-  }
-
-  if (bot_token.charAt(0) === "@") {
-    token = connected_bots[bot_token];
-    if (!token) {
-      apiResponse = await sendMessage({
-        chat_id: update.message.chat.id,
-        text: `Bot ${bot_token} is not connected. Please use \`/connect <BOT_TOKEN>\` to connect this bot first.`,
-        parse_mode: "Markdown",
-        reply_to_message_id: update.message.message_id,
-      },
-        process.env.TELEGRAM_BOT_TOKEN);
-      return;
-    }
-    bot_token = token;
-  }
   try {
     if (update.message.reply_to_message) {
       apiResponse = await cloneMessage({
@@ -375,7 +337,79 @@ async function on_send_message(update, args, isReply) {
     text: response,
     reply_to_message_id: update.message.message_id,
   },
-    process.env.TELEGRAM_BOT_TOKEN);
+    process.env.TELEGRAM_BOT_TOKEN).then(async sendMessageApiResponse => {
+      if (apiResponse.status === 200) {
+        // cache the bot and the group
+        setObjectProperty(cache, `${update.message.chat.id}.recent_group`, to_chat_id);
+        setObjectProperty(cache, `${update.message.chat.id}.recent_bot`, bot_token);
+
+        cached_bot_username = getObjectProperty(cache, `${update.message.chat.id}.bot_token_to_username.${bot_token}`);
+        if (!cached_bot_username) {
+          try {
+            apiResponse = await getMe(bot_token);
+            const fetched_bot_username = `@${apiResponse.data.result.username}`;
+            setObjectProperty(cache, `${update.message.chat.id}.bot_token_to_username.${bot_token}`, fetched_bot_username);
+            setObjectProperty(cache, `${update.message.chat.id}.bot_username_to_token.${fetched_bot_username}`, bot_token);
+            await sendMessage({
+              chat_id: update.message.chat.id,
+              text: `${fetched_bot_username} added to cache. You can now use the bot's username instead of the bot token for all requests.`,
+              reply_to_message_id: update.message.message_id,
+            },
+              process.env.TELEGRAM_BOT_TOKEN);
+          } catch (err) {
+            await sendMessage({
+              chat_id: update.message.chat.id,
+              text: `Unable to cache this token. Please use the bot token while we work to resolve this issue.`,
+              reply_to_message_id: update.message.message_id,
+            },
+              process.env.TELEGRAM_BOT_TOKEN);
+          }
+        }
+
+        // delete the reply-to command and status messages
+        if (isReplyCommand) {
+          let delete_api_response;
+          delete_api_response = await deleteMessage({
+            chat_id: to_chat_id,
+            message_id: getObjectProperty(cache, `${to_chat_id}.reply_to.command_message_id`),
+          }, process.env.TELEGRAM_BOT_TOKEN);
+          delete_api_response = await deleteMessage({
+            chat_id: to_chat_id,
+            message_id: getObjectProperty(cache, `${to_chat_id}.reply_to.status_message_id`),
+          }, process.env.TELEGRAM_BOT_TOKEN);
+        }
+      }
+      return sendMessageApiResponse;
+    });
+}
+
+function getInlineKeyboard(update) {
+  inline_keyboard = [];
+
+  let reply_markup_text = update.message.text.match(/\[.+]/g);
+  if (reply_markup_text && reply_markup_text.length) {
+    reply_markup_text = reply_markup_text[0];
+  }
+
+  if (reply_markup_text) {
+    try {
+      const button_rows = reply_markup_text.match(/\[[^\[\]]+]/gm);
+      button_rows.forEach(row => {
+        const reply_markup_row = [];
+        const columns = row.slice(1, -1).trim().split(',');
+        columns.forEach(column => {
+          reply_markup_row.push({
+            text: column,
+            callback_data: column,
+          });
+        });
+        inline_keyboard.push(reply_markup_row);
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+  return inline_keyboard;
 }
 
 module.exports = {

@@ -81,27 +81,13 @@ addBot(process.env.TELEGRAM_BOT_USERNAME, process.env.TELEGRAM_BOT_SECRET, {
   onPMChatJoin: async function (update) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you mock the experience of a Telegram chatbot in a group. I do this by posting messages to a group as the bot you are trying to mock, after which you can take screenshots of the conversation to create your mockups. I support posting all kinds of Telegram messages like text, photo, video, audio, etc. I can even reply to a message as another bot. Here is a quick tutorial to get started.
+      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you mock the experience of a Telegram chatbot in a group. I do this by posting messages to a group as the bot you are trying to mock, after which you can take screenshots of the conversation to create your mockups.
       
-To begin, use @BotFather to create a new bot - the bot you would like to mock. Once you have the bot token, I can send a message as this bot to any group using the command \`/send "<MESSAGE>" <GROUP USERNAME> <BOT TOKEN>\`. For example \`/send "hello" @mygroup 1234567890:mY-bOt-tOkEn\`. Before sending a message, your new bot must be a member of the target group.
+I support posting all kinds of Telegram messages like text, photo, video, audio, etc. I can even reply to a message as another bot and attach callback buttons to messages. Click /tutorial for a quick tutorial.
 
-Once you use a bot token in any command, it will be cached for you so the next time you just need to pass the bot username instead of the token. For example \`/send "<MESSAGE>" <GROUP USERNAME> <BOT USERNAME>\`.
+Click /help for details on my commands and their usage.
 
-You can even skip the bot username or group username and use \`/send "<MESSAGE>"\` to send the message. Mockabot will automatically send your message as the last bot and group used.
-
-For private groups, you can replace <GROUP USERNAME> with <GROUP CHATID> where chat id is obtained using the command \`/chatid\` in the private group.
-
-To send rich media messages, create a separate group and add @mockabot and your target bot as admins. Post any rich media message to the group, then simply reply with \`/send <GROUP USERNAME> <BOT TOKEN>\`. You can skip the group username and bot token and just reply to any message with \`/send\` once these are cached by Mockabot.
-
-You can also reply to a message in a group. Make sure Mockabot is added as an admin to the target group, then reply to the target message with the command \`/replyto\`. This will set the target message for the \`/reply\` command. Then use \`/reply\` instead of \`/send\` to send a reply to the target message.
-
-To send callback buttons, you can use the following syntax at the end of the send and reply commands - [[Row1Col1ButtonText, ...Row1ColNButtonText], ...[RowMCol1ButtonText, ...]]. Rows can have different number of columns.
-
-Mockabot does not store your data in any database, and your cache might get cleared without notice. To force your cache to get cleared, use the command \`/clearcache\`.
-
-Mockabot also does not set any webhooks on your bots, or try to read any incoming updates using your bot tokens. The project is open-source and can be found at https://github.com/rappo-ai/mockabot.
-
-Click /help for details on my commands and their usage.`,
+Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.`,
       parse_mode: "Markdown",
     },
       process.env.TELEGRAM_BOT_TOKEN);
@@ -154,6 +140,11 @@ async function onMessage(update, isGroup) {
         apiResponse = await onCommandHelp(update);
       }
       break;
+    case "/tutorial":
+      {
+        apiResponse = await onCommandTutorial(update);
+      }
+      break;
     case "/chatid":
       {
         apiResponse = await onCommandChatid(update);
@@ -185,7 +176,49 @@ async function onMessage(update, isGroup) {
 async function onCommandHelp(update) {
   apiResponse = await sendMessage({
     chat_id: update.message.chat.id,
-    text: `Working on it, will have the help up soon.`,
+    text: `*Mockabot Command Usage*
+
+- /send \`"<message>" <chatid/groupusername> <bottoken/botusername> <buttons>\` - send simple text message as a bot to a group; optionally can send callback buttons (see syntax below)
+- /reply \`"<message>" <chatid/groupusername> <bottoken/botusername> <buttons>\` - reply to a message in a group with a simple text message as a bot; optionally can send callback buttons (see syntax below)
+- /replyto - reply to a message in the target group with this command to set the target message to reply to
+- /chatid - get the id of the current chat
+- /clearcache - clears cached bots, bot tokens and groups for the current chat
+- /tutorial - display a getting started tutorial
+- /help - show this help message
+
+*Notes*
+- /send and /reply generally need both Mockabot and the target bot to be added as admins to the target group chat, as well as any other group used for sending the messages
+- \`"<message>"\` is optional in /send and /reply if you are replying to a message with these commands; use this to send rich-text, multimedia, etc. messages
+- \`<chatid/groupusername>\` and \`<bottoken/botusername>\` are optional once you have used these commands in a group; the last used bot token and group id are cached for future requests
+- syntax for adding buttons is \`[[Row_1_Button_1_Text, ...Row_1_Button_N_Text], ...[Row_M_Button_1_Text, ...Row_M_Button_N_Text]]\`; for example \`[[Place Order, Cancel Order], [Contact Support]]\`
+
+Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
+`,
+    parse_mode: "Markdown",
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
+
+async function onCommandTutorial(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `To begin, use @BotFather to create a new bot - the bot you would like to mock. Once you have the bot token, I can send a message as this bot to any group using the command /send \`"<message>" <groupusername> <bottoken>\`. For example /send \`"hello" @mygroup 1234567890:mY-bOt-tOkEn\`. Before sending a message, your new bot must be a member of the target group.
+
+Once you use a bot token in any command, it will be cached for you so the next time you can use the bot username instead of the token. For example /send \`"<message>" <groupusername> <botusername>\`. You can even skip the bot username or group username and use /send \`"<message>"\` to send the message - Mockabot will automatically send your message as the last bot and group used. For private groups, you can replace \`<groupusername>\` with \`<groupchatid>\` where chat id is obtained using the command /chatid in the private group.
+
+To send rich media messages, create a separate group and add @mockabot and your target bot as admins. Post any rich media message to the group, then simply reply to that message with /send \`<groupusername> <bottoken>\`. You can skip \`<groupusername>\` and \`<bottoken>\` once these are cached, so just replying with a /send will do.
+
+You can also reply to a message in the target group. Make sure Mockabot is added as an admin to the target group, then reply to the target message with the command /replyto. This will set the target message for the /reply command. Then use /reply instead of /send to send a reply to the target message.
+
+To send callback buttons, you can add the following at the end of the /send and /reply commands - \`[[Row_1_Button_1_Text, ...Row_1_Button_N_Text], ...[Row_M_Button_1_Text, ...Row_M_Button_N_Text]]\`. Each row can have a different number of columns. For example /send \`"hello" @mygroupusername 1234567890:mY-bOt-tOkEn [[Place Order, Cancel Order], [Contact Support]]\`.
+
+Mockabot does not store your data in any database, and your cache might get cleared without notice. To force your cache to get cleared for a particular group chat use the command /clearcache.
+
+Mockabot also does not set any webhooks on your bots, or try to read any incoming updates using your bot tokens.
+
+Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
+`,
+    parse_mode: "Markdown",
   },
     process.env.TELEGRAM_BOT_TOKEN);
 }
@@ -217,7 +250,7 @@ async function onCommandReplyto(update) {
   if (!update.message.reply_to_message) {
     return sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage: Reply to any message in the target chat with /replyto to set the reply-to message of this chat.`,
+      text: `Usage: Reply to any message in the target chat with /replyto to set the target message for /reply.`,
       reply_to_message_id: update.message.message_id,
     },
       process.env.TELEGRAM_BOT_TOKEN);
@@ -252,7 +285,7 @@ async function doSendMessage(update, isReplyCommand) {
   if (!update.message.reply_to_message && message === undefined) {
     return sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] [BOT TOKEN | BOT USERNAME]\``,
+      text: `Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<chatid/groupusername> <bottoken/botusername>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -262,7 +295,7 @@ async function doSendMessage(update, isReplyCommand) {
       chat_id: update.message.chat.id,
       text: `No group found in the cache. Please specify the group username or chat id.
 
-Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}<CHAT ID | GROUP USERNAME> [BOT TOKEN | BOT USERNAME]\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<chatid/groupusername> <bottoken/botusername>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -272,7 +305,7 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
       chat_id: update.message.chat.id,
       text: `No bot found in the cache. Please specify the bot token.
 
-Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] <BOT TOKEN>\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<chatid/groupusername> <bottoken>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -282,7 +315,7 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
       chat_id: update.message.chat.id,
       text: `${bot_username} not found in the cache. Please specify a different bot username or the bot token.
 
-Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<MESSAGE>" '}[CHAT ID | GROUP USERNAME] <BOT TOKEN | BOT USERNAME>\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<chatid/groupusername> <bottoken/botusername>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },

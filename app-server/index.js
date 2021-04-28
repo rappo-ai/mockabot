@@ -48,7 +48,14 @@ app.listen(port, host, async err => {
   // Connect to ngrok in dev mode
   if (ngrok) {
     try {
-      hostUrl = await ngrok.connect(port);
+      const ngrokOptions = {
+        addr: port,
+        region: 'in',
+      };
+      if (process.env.NGROK_AUTH_TOKEN) {
+        ngrokOptions.authtoken = process.env.NGROK_AUTH_TOKEN;
+      }
+      hostUrl = await ngrok.connect(ngrokOptions);
     } catch (e) {
       return logger.error(e);
     }

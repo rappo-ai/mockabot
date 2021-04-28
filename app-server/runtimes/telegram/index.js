@@ -128,12 +128,17 @@ async function onMessage(update, isGroup) {
   if (!update.message.text) {
     return;
   }
-  const command_match = update.message.text.match(/(^\/[a-z]+)/);
+
+  let command_match = update.message.text.match(/(^\/[a-z]+)/);
   if (!command_match || !command_match.length) {
-    return;
+    if (!isGroup) {
+      command_match = ["/help"];
+    } else {
+      return;
+    }
   }
-  const command = command_match[0];
   let apiResponse;
+  const command = command_match[0];
   switch (command) {
     case "/help":
       {
@@ -170,6 +175,15 @@ async function onMessage(update, isGroup) {
         apiResponse = await onCommandReply(update);
       }
       break;
+    default:
+      {
+        if (!isGroup) {
+          apiResponse = await sendMessage({
+            chat_id: update.message.chat.id,
+            text: `Command ${command} not recognized. Please click /help to know the possible commands.`,
+          }, process.env.TELEGRAM_BOT_TOKEN);
+        }
+      }
   }
   return apiResponse;
 }

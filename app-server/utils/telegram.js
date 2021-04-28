@@ -20,6 +20,16 @@ async function getMe(botToken) {
   );
 }
 
+async function getChat({ chat_id }, botToken) {
+  return callTelegramApi(
+    'getChat',
+    botToken,
+    {
+      chat_id,
+    },
+  );
+}
+
 async function sendMessage({ chat_id, text, reply_to_message_id = "", reply_markup = {}, parse_mode = "", entities = [] }, botToken) {
   return callTelegramApi(
     'sendMessage',
@@ -533,6 +543,7 @@ module.exports = {
   TELEGRAM_MESSAGE_TYPES,
   getWebhookUrl,
   getMe,
+  getChat,
   sendMessage,
   forwardMessage,
   copyMessage,

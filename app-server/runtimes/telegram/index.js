@@ -181,6 +181,7 @@ async function onMessage(update, isGroup) {
           apiResponse = await sendMessage({
             chat_id: update.message.chat.id,
             text: `Command ${command} not recognized. Please click /help to know the possible commands.`,
+            reply_to_message_id: update.message.message_id,
           }, process.env.TELEGRAM_BOT_TOKEN);
         }
       }

@@ -30,7 +30,7 @@ async function getChat({ chat_id }, botToken) {
   );
 }
 
-async function sendMessage({ chat_id, text, reply_to_message_id = "", reply_markup = {}, parse_mode = "", entities = [] }, botToken) {
+async function sendMessage({ chat_id, text, reply_to_message_id = "", reply_markup = {}, parse_mode = "", entities = [], disable_web_page_preview = false }, botToken) {
   return callTelegramApi(
     'sendMessage',
     botToken,
@@ -41,6 +41,7 @@ async function sendMessage({ chat_id, text, reply_to_message_id = "", reply_mark
       reply_markup,
       parse_mode,
       entities,
+      disable_web_page_preview,
     },
   );
 }

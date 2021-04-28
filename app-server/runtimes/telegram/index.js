@@ -89,6 +89,7 @@ Click /help for details on my commands and their usage.
 
 Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.`,
       parse_mode: "Markdown",
+      disable_web_page_preview: true,
     },
       process.env.TELEGRAM_BOT_TOKEN);
     logger.info(`@${process.env.TELEGRAM_BOT_USERNAME} started PM chat with ${update.message.from.first_name} | ${update.message.from.username} | ${update.message.from.id} `);
@@ -212,6 +213,7 @@ async function onCommandHelp(update) {
 Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
 `,
     parse_mode: "Markdown",
+    disable_web_page_preview: true,
   },
     process.env.TELEGRAM_BOT_TOKEN);
 }
@@ -236,6 +238,7 @@ Mockabot also does not set any webhooks on your bots, or try to read any incomin
 Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
 `,
     parse_mode: "Markdown",
+    disable_web_page_preview: true,
   },
     process.env.TELEGRAM_BOT_TOKEN);
 }

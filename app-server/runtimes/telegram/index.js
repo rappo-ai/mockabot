@@ -294,7 +294,7 @@ async function onCommandTutorialStep4(update) {
     chat_id: update.message.chat.id,
     text: `Awesome! You can use this method to send any type of messages supported by Telegram such as images, videos, audio, etc. You can also reply to an existing message as a bot. Just reply to any existing message with /replyto to set the target message. Then use the command /reply instead of /send to reply to that message.
 
-Let's try it out. Reply to this message with /replyto. Once you have done that, type /reply \`"Understood\` to reply "Understood" to this tutorial message as Mockabot.
+Let's try it out. Reply to this message with /replyto. Once you have done that, type /reply \`"Understood"\` to reply "Understood" to this tutorial message as Mockabot.
 
 Once you are done with this step, click /tutorial\\_step5 to go to the next step. Click /tutorial\\_step3 to go back.`,
     parse_mode: "Markdown",

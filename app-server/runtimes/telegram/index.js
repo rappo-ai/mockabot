@@ -81,13 +81,16 @@ addBot(process.env.TELEGRAM_BOT_USERNAME, process.env.TELEGRAM_BOT_SECRET, {
   onPMChatJoin: async function (update) {
     await sendMessage({
       chat_id: update.message.chat.id,
-      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you mock the experience of a Telegram chatbot in a group. I do this by posting messages to a group as the bot you are trying to mock, after which you can take screenshots of the conversation to create your mockups.
+      text: `Hi ${update.message.from.first_name}! My name is Mockabot - I can help you pretend to be a Telegram chatbot. I do this by posting messages to a chat as another bot. You can then take screenshots of the conversation to create bot mockups if you like.
       
-I support posting all kinds of Telegram messages like text, photo, video, audio, etc. I can even reply to a message as another bot and attach callback buttons to messages. Click /tutorial for a quick tutorial.
+I support posting all kinds of Telegram messages like text, photo, video, audio, etc. I can even reply to a message as the other bot and attach callback buttons to messages.
 
-Click /help for details on my commands and their usage.
+Click /tutorial for a quick tutorial to get started. Click /help for details on my commands and their usage.
 
-Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.`,
+Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
+
+Created by @rappoai - follow us for more useful Telegram bots.`,
+
       parse_mode: "Markdown",
       disable_web_page_preview: true,
     },
@@ -130,7 +133,7 @@ async function onMessage(update, isGroup) {
     return;
   }
 
-  let command_match = update.message.text.match(/(^\/[a-z]+)/);
+  let command_match = update.message.text.match(/(^\/\w+)/);
   if (!command_match || !command_match.length) {
     if (!isGroup) {
       command_match = ["/help"];
@@ -147,8 +150,39 @@ async function onMessage(update, isGroup) {
       }
       break;
     case "/tutorial":
+    case "/tutorial_step1":
       {
-        apiResponse = await onCommandTutorial(update);
+        apiResponse = await onCommandTutorialStep1(update);
+      }
+      break;
+    case "/tutorial_step2":
+      {
+        apiResponse = await onCommandTutorialStep2(update);
+      }
+      break;
+    case "/tutorial_step3":
+      {
+        apiResponse = await onCommandTutorialStep3(update);
+      }
+      break;
+    case "/tutorial_step4":
+      {
+        apiResponse = await onCommandTutorialStep4(update);
+      }
+      break;
+    case "/tutorial_step5":
+      {
+        apiResponse = await onCommandTutorialStep5(update);
+      }
+      break;
+    case "/tutorial_step6":
+      {
+        apiResponse = await onCommandTutorialStep6(update);
+      }
+      break;
+    case "/tutorial_step7":
+      {
+        apiResponse = await onCommandTutorialStep7(update);
       }
       break;
     case "/chatid":
@@ -194,8 +228,8 @@ async function onCommandHelp(update) {
     chat_id: update.message.chat.id,
     text: `*Mockabot Command Usage*
 
-- /send \`"<message>" <bottoken/botusername> <chatid/groupusername> <buttons>\` - send simple text message as a bot to a group; optionally can send callback buttons (see syntax below)
-- /reply \`"<message>" <bottoken/botusername> <chatid/groupusername> <buttons>\` - reply to a message in a group with a simple text message as a bot; optionally can send callback buttons (see syntax below)
+- /send \`"<message>" <bot_token/bot_username> <chatid/group_username> <buttons>\` - send simple text message as a bot to a group; optionally can send callback buttons (see syntax below)
+- /reply \`"<message>" <bot_token/bot_username> <chatid/group_username> <buttons>\` - reply to a message in a group with a simple text message as a bot; optionally can send callback buttons (see syntax below)
 - /replyto - reply to a message in the target group with this command to set the target message to reply to
 - /chatid - get the id of the current chat
 - /clearcache - clears cached bots, bot tokens and groups for the current chat
@@ -205,38 +239,102 @@ async function onCommandHelp(update) {
 *Notes*
 - /send and /reply generally need both Mockabot and the target bot to be added as admins to the target group chat, as well as any other group used for sending the messages
 - if you reply to a message with /send or /reply, \`"<message>"\` is not required and ignored and the message being replied to is sent instead; use this to send all kinds of Telegram messages
-- \`<bottoken/botusername>\` and \`<chatid/groupusername>\` are optional once you have used these commands in a group; the last used bot token and chat id are cached for future requests
-- \`<bottoken/botusername>\` is optional; if not specified we first look for the cached target bot, otherwise we send the message as @mockabot
-- \`<chatid/groupusername>\` is optional; if not specified we first look for the cached target chat, otherwise we use the current chat id
-- syntax for adding buttons is \`[[Row_1_Button_1_Text, ...Row_1_Button_N_Text], ...[Row_M_Button_1_Text, ...Row_M_Button_N_Text]]\`; for example \`[[Place Order, Cancel Order], [Contact Support]]\`
+- \`<bot_token/bot_username>\` and \`<chatid/group_username>\` are optional once you have used these commands in a group; the last used bot token and chat id are cached for future requests
+- \`<bot_token/bot_username>\` is optional; if not specified we first look for the cached target bot, otherwise we send the message as @mockabot
+- \`<chatid/group_username>\` is optional; if not specified we first look for the cached target chat, otherwise we use the current chat id
+- syntax for adding buttons is \`[Row_1_Button_1_Text, ...Row_1_Button_N_Text], ...[Row_M_Button_1_Text, ...Row_M_Button_N_Text]\`; for example \`[Place Order, Cancel Order], [Contact Support]\`
 
 Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
-`,
+
+Created by @rappoai - follow us for more useful Telegram bots.`,
     parse_mode: "Markdown",
     disable_web_page_preview: true,
   },
     process.env.TELEGRAM_BOT_TOKEN);
 }
 
-async function onCommandTutorial(update) {
+async function onCommandTutorialStep1(update) {
   apiResponse = await sendMessage({
     chat_id: update.message.chat.id,
-    text: `To begin, use @BotFather to create a new bot - the bot you would like to mock. Once you have the bot token, I can send a message as this bot to any group using the command /send \`"<message>" <bottoken> <groupusername>\`. For example /send \`"hello" 1234567890:mY-bOt-tOkEn @mygroup\`. Before sending a message, your new bot must be a member of the target group.
+    text: `First let's learn about the send command. You can send simple text messages using /send \`"<message>"\`. Just type /send \`"Hello"\` to try this out. It will send "Hello" to this chat as Mockabot.
+    
+Once you are done with this step, click /tutorial\\_step2 to go to the next step.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
 
-Once you use a bot token in any command, it will be cached for you so the next time you can use the bot username instead of the token. For example /send \`"<message>" <botusername> <groupusername>\`. You can even skip the bot username or group username and use /send \`"<message>"\` to send the message - Mockabot will automatically send your message as the last bot and group used. If you have never used a bot token, Mockabot will send the message as @mockabot provided it is a member of the chat. For private groups, you can replace \`<groupusername>\` with \`<groupchatid>\` where chat id is obtained using the command /chatid in the private group.
+async function onCommandTutorialStep2(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Great! Now let's learn to add some callback buttons to the message. You add buttons at the end of the message text by putting the button text inside square brackets like *[Buy Now]*. You can add multiple buttons in a row by using a comma like *[Menu, Help]*. You can add multiple rows by using multiple square brackets like *[Buy Now][Menu, Help]*. Try /send \`"Choose an option:" [Buy Now][Menu, Help]\` to see this in action.
+    
+Once you are done with this step, click /tutorial\\_step3 to go to the next step. Click /tutorial\\_step1 to go back.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
 
-To send rich media messages, add @mockabot as an admin to the same group as your target bot. Post any rich media message to the group, then simply reply to that message with /send \`<bottoken> <groupusername>\`. You can skip \`<bottoken>\` and \`<groupusername>\` once these are cached or if you would like to use the default bot and chat, so just replying with a /send will do.
+async function onCommandTutorialStep3(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Great! Now let's learn to send an image as Mockabot. First post the image to this chat. Then reply to the image with /send.
+    
+Once you are done with this step, click /tutorial\\_step4 to go to the next step. Click /tutorial\\_step2 to go back.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
 
-You can also reply to a message in the target group. Make sure @mockabot is added as an admin to the target group, then reply to the target message with the command /replyto. This will set the target message for the /reply command. Then use /reply instead of /send to send a reply to the target message.
+async function onCommandTutorialStep4(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Awesome! You can use this method to send any type of messages supported by Telegram such as images, videos, audio, etc. You can also reply to an existing message as a bot. Just reply to any existing message with /replyto to set the target message. Then use the command /reply instead of /send to reply to that message.
 
-To send callback buttons, you can add the following at the end of the /send and /reply commands - \`[[Row_1_Button_1_Text, ...Row_1_Button_N_Text], ...[Row_M_Button_1_Text, ...Row_M_Button_N_Text]]\`. Each row can have a different number of columns. For example /send \`"hello" 1234567890:mY-bOt-tOkEn @mygroupusername [[Place Order, Cancel Order], [Contact Support]]\`.
+Let's try it out. Reply to this message with /replyto. Once you have done that, type /reply \`"Understood\` to reply "Understood" to this tutorial message as Mockabot.
 
-Mockabot does not store your data in any database, and your cache might get cleared without notice. To force your cache to get cleared for a particular group chat use the command /clearcache.
+Once you are done with this step, click /tutorial\\_step5 to go to the next step. Click /tutorial\\_step3 to go back.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
 
-Mockabot also does not set any webhooks on your bots, or try to read any incoming updates using your bot tokens.
+async function onCommandTutorialStep5(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Awesome! In this way you can reply to any messages in a chat as a bot. Now let's try to send a message in a group. First add @mockabot to any group as an administrator. Then type the command /send \`"Hello"\` in the group to send "Hello" as Mockabot.
+    
+Once you are done with this step, click /tutorial\\_step6 to go to the next step. Click /tutorial\\_step4 to go back.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
 
-Mockabot is open-source and can be found at https://github.com/rappo-ai/mockabot.
-`,
+async function onCommandTutorialStep6(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Great! Now let's send a message as another bot. The syntax is /send \`"<message>"\` \`<bot_token>\`. You can get a bot token by messaging @BotFather and creating a new bot. Once you have created your bot, add it to the same group with @mockabot as an administrator. And then try /send \`"Hello" 1234567890:my_bot_token\` replacing your bot token received from BotFather. This will send "Hello" to this chat as your new bot.
+    
+Once you are done with this step, click /tutorial\\_step7 to go to the next step. Click /tutorial\\_step5 to go back.`,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  },
+    process.env.TELEGRAM_BOT_TOKEN);
+}
+
+async function onCommandTutorialStep7(update) {
+  apiResponse = await sendMessage({
+    chat_id: update.message.chat.id,
+    text: `Awesome! Now that you have sent a message as another bot, you do not need to type the bot token to send messages as that bot. Mockabot will remember the last bot used in a chat. So just /send \`"Hello"\` should be enough to send "Hello" as the other bot in your group. You can also try replying to an image with /send to post that image as your new bot, or use the /replyto command with any existing message in this group followed by a /reply to reply as your bot. And don't forget you can attach buttons by adding the following syntax *[Buy Now][About, Help]* as part of your message text.
+
+This is the end of the tutorial. You can view the command usage by clicking /help.
+
+Click /tutorial\\_step6 to go back to the previous step.`,
     parse_mode: "Markdown",
     disable_web_page_preview: true,
   },
@@ -275,6 +373,9 @@ async function onCommandReplyto(update) {
     },
       process.env.TELEGRAM_BOT_TOKEN);
   }
+
+  await deleteReplyToMessages(update.message.chat.id);
+
   setObjectProperty(cache, `${update.message.chat.id}.reply_to.message_id`, update.message.reply_to_message.message_id);
   setObjectProperty(cache, `${update.message.chat.id}.reply_to.command_message_id`, update.message.message_id);
   const apiResponse = await sendMessage({
@@ -291,13 +392,14 @@ async function onCommandReply(update) {
 }
 
 async function doSendMessage(update, isReplyCommand) {
-  const matches = update.message.text.match(/(^\/[a-z]+)\s*(".*")?\s*(\d{10}:\S{35})?(@\w{2,}[bB][oO][tT])?\s*(@\w{5,})?(-?\d+[\s$])?/);
+  const matches = update.message.text.match(/(^\/\w+)\s*(["'ʺ˝ˮ˶״ײ“”‟″‶〃＂].*["'ʺ˝ˮ˶״ײ“”‟″‶〃＂])?\s*(\d{10}:\S{35})?(@\w{2,}[bB][oO][tT])?\s*(@\w{5,})?(-?\d+[\s$])?\s*(\[.+])?/);
   const command = matches[1];
   const message = matches[2] ? matches[2].slice(1, -1) : undefined;
   let bot_token = matches[3];
   const bot_username = matches[4];
   const group_username = matches[5];
   let to_chat_id = matches[6];
+  const reply_markup_text = matches[7];
 
   let apiResponse;
 
@@ -326,7 +428,7 @@ async function doSendMessage(update, isReplyCommand) {
   if (!update.message.reply_to_message && message === undefined) {
     return sendMessage({
       chat_id: update.message.chat.id,
-      text: `Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bottoken/botusername> <chatid/groupusername>\``,
+      text: `Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bot_token/bot_username> <chatid/group_username>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -336,7 +438,7 @@ async function doSendMessage(update, isReplyCommand) {
       chat_id: update.message.chat.id,
       text: `${group_username} does not appear to be a public Telegram group. Please check the group username or specify a chat id.
 
-Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bottoken/botusername> <chatid/groupusername>\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bot_token/bot_username> <chatid/group_username>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -346,7 +448,7 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
       chat_id: update.message.chat.id,
       text: `${bot_username} not found in the cache. Please specify a different bot username or the bot token.
 
-Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bottoken/botusername> <chatid/groupusername>\``,
+Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_message ? '' : '"<message>" '}<bot_token/bot_username> <chatid/group_username>\``,
       parse_mode: "Markdown",
       reply_to_message_id: update.message.message_id,
     },
@@ -361,7 +463,7 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
       process.env.TELEGRAM_BOT_TOKEN);
   }
 
-  const reply_markup = { inline_keyboard: getInlineKeyboard(update) };
+  const reply_markup = { inline_keyboard: getInlineKeyboard(reply_markup_text) };
   const reply_to_message_id = isReplyCommand ? getObjectProperty(cache, `${to_chat_id}.reply_to.message_id`) : undefined;
 
   try {
@@ -372,12 +474,6 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
         reply_markup,
         reply_to_message_id,
       }, bot_token);
-      if (update.message.chat.id === to_chat_id) {
-        apiResponse = await deleteMessage({
-          chat_id: to_chat_id,
-          message_id: update.message.message_id,
-        }, bot_token);
-      }
     } else {
       apiResponse = await sendMessage({
         chat_id: to_chat_id,
@@ -386,12 +482,6 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
         reply_to_message_id,
       },
         bot_token);
-      if (update.message.chat.id === to_chat_id) {
-        apiResponse = await deleteMessage({
-          chat_id: to_chat_id,
-          message_id: update.message.message_id,
-        }, bot_token);
-      }
     }
   } catch (err) {
     if (err.response) {
@@ -411,6 +501,18 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
   }
 
   if (apiResponse.status === 200) {
+
+    try {
+      if (update.message.chat.id === to_chat_id) {
+        await deleteMessage({
+          chat_id: to_chat_id,
+          message_id: update.message.message_id,
+        }, process.env.TELEGRAM_BOT_TOKEN);
+      }
+    } catch (err) {
+      logger.error(`deleteMessage ${err}`);
+    }
+
     // cache the bot and the group
     setObjectProperty(cache, `${update.message.chat.id}.recent_chat_target`, to_chat_id);
     setObjectProperty(cache, `${update.message.chat.id}.recent_bot_target`, bot_token);
@@ -443,39 +545,38 @@ Usage - \`/${isReplyCommand ? 'reply' : 'send'} ${update.message.reply_to_messag
 
     // delete the reply-to command and status messages
     if (isReplyCommand) {
-      try {
-        let delete_api_response;
-        if (hasObjectProperty(cache, `${to_chat_id}.reply_to.command_message_id`)) {
-          delete_api_response = await deleteMessage({
-            chat_id: to_chat_id,
-            message_id: getObjectProperty(cache, `${to_chat_id}.reply_to.command_message_id`),
-          }, process.env.TELEGRAM_BOT_TOKEN);
-        }
-        if (hasObjectProperty(cache, `${to_chat_id}.reply_to.status_message_id`)) {
-          delete_api_response = await deleteMessage({
-            chat_id: to_chat_id,
-            message_id: getObjectProperty(cache, `${to_chat_id}.reply_to.status_message_id`),
-          }, process.env.TELEGRAM_BOT_TOKEN);
-        }
-      } catch (err) {
-        logger.error(`deleteReplyMessages ${err}`);
-      }
-      setObjectProperty(cache, `${to_chat_id}.reply_to`, {});
+      await deleteReplyToMessages(to_chat_id);
     }
   }
 }
 
-function getInlineKeyboard(update) {
-  inline_keyboard = [];
-
-  let reply_markup_text = update.message.text.match(/\[.+]/g);
-  if (reply_markup_text && reply_markup_text.length) {
-    reply_markup_text = reply_markup_text[0];
+async function deleteReplyToMessages(chat_id) {
+  try {
+    let delete_api_response;
+    if (hasObjectProperty(cache, `${chat_id}.reply_to.command_message_id`)) {
+      delete_api_response = await deleteMessage({
+        chat_id,
+        message_id: getObjectProperty(cache, `${chat_id}.reply_to.command_message_id`),
+      }, process.env.TELEGRAM_BOT_TOKEN);
+    }
+    if (hasObjectProperty(cache, `${chat_id}.reply_to.status_message_id`)) {
+      delete_api_response = await deleteMessage({
+        chat_id,
+        message_id: getObjectProperty(cache, `${chat_id}.reply_to.status_message_id`),
+      }, process.env.TELEGRAM_BOT_TOKEN);
+    }
+    setObjectProperty(cache, `${chat_id}.reply_to`, {});
+  } catch (err) {
+    logger.error(`deleteReplyMessages ${err}`);
   }
+}
+
+function getInlineKeyboard(reply_markup_text) {
+  inline_keyboard = [];
 
   if (reply_markup_text) {
     try {
-      const button_rows = reply_markup_text.match(/\[[^\[\]]+]/gm);
+      const button_rows = reply_markup_text.match(/\[[^\[]+]/g);
       button_rows.forEach(row => {
         const reply_markup_row = [];
         const columns = row.slice(1, -1).trim().split(',');
